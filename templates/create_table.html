@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Create Your Kitchen Table{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1 class="auth-title">🏠</h1>
+        <h2>Create Your Kitchen Table</h2>
+        <p class="auth-description">Set up a cozy space for your group to connect daily.</p>
+        
+        <form id="create-table-form" class="auth-form">
+            <div class="form-group">
+                <label for="table_name">Table Name</label>
+                <input type="text" id="table_name" name="table_name" required 
+                       placeholder="Smith Family, Book Club, Best Friends..." 
+                       minlength="3" maxlength="50">
+            </div>
+            
+            <div class="form-group">
+                <label for="prompt_time">Daily Question Time</label>
+                <input type="time" id="prompt_time" name="prompt_time" value="00:00">
+                <small>When should the new question appear each day?</small>
+            </div>
+            
+            <div id="error-message" class="error-message"></div>
+            <button type="submit" class="btn btn-primary">Create Table</button>
+        </form>
+        
+        <div class="divider">or</div>
+        
+        <a href="/join-table" class="btn btn-secondary">Join Existing Table</a>
+    </div>
+</div>
+{% endblock %}

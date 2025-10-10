@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Yesterday - The Kitchen Table{% endblock %}
+
+{% block content %}
+<div class="table-container">
+    <header class="table-header">
+        <h1 id="table-name" class="table-name">🏠 The Kitchen Table</h1>
+        <div class="header-actions">
+            <a href="/table/settings" class="header-link">Settings</a>
+            <button id="logout-btn" class="header-link">Logout</button>
+        </div>
+    </header>
+    
+    <main class="table-main">
+        <div class="prompt-section">
+            <div class="date-indicator">
+                <span id="date-label">YESTERDAY</span>
+                <span id="date-value"></span>
+            </div>
+            
+            <div id="prompt-card" class="prompt-card">
+                <p id="prompt-text" class="prompt-text">Loading...</p>
+            </div>
+            
+            <div id="responses-container" class="responses-container">
+                <!-- Responses will be inserted here -->
+            </div>
+        </div>
+        
+        <nav class="table-nav">
+            <a href="/table" class="nav-link">→ Today</a>
+        </nav>
+    </main>
+</div>
+
+<div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner"></div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if mode == 'signup' %}Sign Up - The Kitchen Table
+{% elif mode == 'forgot' %}Forgot Password - The Kitchen Table
+{% elif mode == 'reset' %}Reset Password - The Kitchen Table
+{% else %}Sign In - The Kitchen Table{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1 class="auth-title">🏠</h1>
+        
+        {% if mode == 'signup' %}
+        <h2>Create Your Account</h2>
+        <form id="auth-form" class="auth-form">
+            <div class="form-group">
+                <label for="display_name">Display Name</label>
+                <input type="text" id="display_name" name="display_name" required 
+                       placeholder="How others will see you" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required 
+                       placeholder="3-20 characters" pattern="[a-zA-Z0-9_]{3,20}">
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required 
+                       placeholder="At least 8 characters" minlength="8">
+            </div>
+            <div id="error-message" class="error-message"></div>
+            <button type="submit" class="btn btn-primary">Create Account</button>
+        </form>
+        <p class="auth-footer">
+            Already have an account? <a href="/login">Sign in</a>
+        </p>
+        
+        {% elif mode == 'forgot' %}
+        <h2>Forgot Password</h2>
+        <p class="auth-description">Enter your email and we'll send you a reset link.</p>
+        <form id="auth-form" class="auth-form">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required placeholder="your@email.com">
+            </div>
+            <div id="error-message" class="error-message"></div>
+            <div id="success-message" class="success-message"></div>
+            <button type="submit" class="btn btn-primary">Send Reset Link</button>
+        </form>
+        <p class="auth-footer">
+            <a href="/login">Back to sign in</a>
+        </p>
+        
+        {% elif mode == 'reset' %}
+        <h2>Reset Password</h2>
+        <form id="auth-form" class="auth-form">
+            <input type="hidden" id="token" value="{{ token }}">
+            <div class="form-group">
+                <label for="password">New Password</label>
+                <input type="password" id="password" name="password" required 
+                       placeholder="At least 8 characters" minlength="8">
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required 
+                       placeholder="Re-enter password" minlength="8">
+            </div>
+            <div id="error-message" class="error-message"></div>
+            <button type="submit" class="btn btn-primary">Reset Password</button>
+        </form>
+        
+        {% else %}
+        <h2>Welcome Back</h2>
+        <form id="auth-form" class="auth-form">
+            <div class="form-group">
+                <label for="username">Username or Email</label>
+                <input type="text" id="username" name="username" required placeholder="Enter your username or email">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Enter your password">
+            </div>
+            <div id="error-message" class="error-message"></div>
+            <button type="submit" class="btn btn-primary">Sign In</button>
+        </form>
+        <p class="auth-footer">
+            <a href="/forgot-password">Forgot password?</a><br>
+            Don't have an account? <a href="/signup">Sign up</a>
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+const mode = '{{ mode }}';
+const token = '{{ token }}';
+</script>
+{% endblock %}

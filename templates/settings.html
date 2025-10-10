@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - The Kitchen Table{% endblock %}
+
+{% block content %}
+<div class="table-container">
+    <header class="table-header">
+        <a href="/table" class="header-link">← Back to Table</a>
+        <h1 class="table-name">Settings</h1>
+        <button id="logout-btn" class="header-link">Logout</button>
+    </header>
+    
+    <main class="settings-main">
+        <section class="settings-section">
+            <h2>Table Information</h2>
+            <div class="info-group">
+                <label>Table Name:</label>
+                <p id="table-name-display"></p>
+            </div>
+            <div class="info-group">
+                <label>Invite Code:</label>
+                <p id="invite-code-display" class="invite-code"></p>
+                <button id="copy-code-btn" class="btn btn-secondary btn-small">Copy Code</button>
+            </div>
+        </section>
+        
+        <section class="settings-section" id="owner-settings" style="display: none;">
+            <h2>Table Settings <span class="owner-badge">(Owner Only)</span></h2>
+            <form id="settings-form" class="settings-form">
+                <div class="form-group">
+                    <label for="table_name">Table Name</label>
+                    <input type="text" id="table_name" name="table_name" 
+                           minlength="3" maxlength="50">
+                </div>
+                <div class="form-group">
+                    <label for="prompt_time">Daily Question Time</label>
+                    <input type="time" id="prompt_time" name="prompt_time">
+                </div>
+                <div id="settings-message" class="success-message"></div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </section>
+        
+        <section class="settings-section">
+            <h2>Members</h2>
+            <div id="members-list" class="members-list">
+                <!-- Members will be inserted here -->
+            </div>
+        </section>
+        
+        <section class="settings-section danger-zone">
+            <h2>Leave Table</h2>
+            <p>Once you leave, you'll need an invite code to rejoin.</p>
+            <button id="leave-table-btn" class="btn btn-danger">Leave Table</button>
+        </section>
+    </main>
+</div>
+
+<div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner"></div>
+</div>
+{% endblock %}

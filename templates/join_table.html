@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Join a Kitchen Table{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1 class="auth-title">🏠</h1>
+        <h2>Join a Kitchen Table</h2>
+        <p class="auth-description">Enter the invite code someone shared with you.</p>
+        
+        <form id="join-table-form" class="auth-form">
+            <div class="form-group">
+                <label for="invite_code">Invite Code</label>
+                <input type="text" id="invite_code" name="invite_code" required 
+                       placeholder="XXXX-XXXX" maxlength="9" 
+                       style="text-transform: uppercase; letter-spacing: 2px; font-size: 1.1em; text-align: center;">
+            </div>
+            
+            <div id="error-message" class="error-message"></div>
+            <button type="submit" class="btn btn-primary">Join Table</button>
+        </form>
+        
+        <div class="divider">or</div>
+        
+        <a href="/create-table" class="btn btn-secondary">Create Your Own Table</a>
+    </div>
+</div>
+{% endblock %}

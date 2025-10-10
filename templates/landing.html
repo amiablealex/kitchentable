@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="landing-container">
+    <div class="landing-content">
+        <h1 class="landing-title">🏠 The Kitchen Table</h1>
+        <p class="landing-subtitle">
+            A cozy place to connect with the people you care about.<br>
+            One question. One answer. Every day.
+        </p>
+        
+        <div class="landing-buttons">
+            <a href="/signup" class="btn btn-primary">Get Started</a>
+            <a href="/login" class="btn btn-secondary">Sign In</a>
+        </div>
+        
+        <div class="landing-features">
+            <div class="feature">
+                <div class="feature-icon">💭</div>
+                <h3>Daily Questions</h3>
+                <p>Thoughtful prompts to spark conversation</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">👨‍👩‍👧‍👦</div>
+                <h3>Stay Connected</h3>
+                <p>Share moments with family and friends</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">✨</div>
+                <h3>Simple & Beautiful</h3>
+                <p>No clutter, just conversation</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
