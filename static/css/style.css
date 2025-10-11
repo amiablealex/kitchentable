@@ -592,10 +592,10 @@ body {
 /* Pastel Pills for Usernames */
 .pill {
     display: inline-block;
-    padding: 0.35rem 0.875rem;
-    border-radius: 20px;
-    font-size: 0.875rem;
-    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 24px;
+    font-size: 0.65rem;
+    font-weight: 500;
     color: var(--text-primary);
     border: 2px solid transparent;
 }
@@ -672,41 +672,37 @@ body {
 /* Date Indicator */
 .date-indicator {
     text-align: center;
-    padding: 1rem;
-    background: var(--color-brand-accent);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    margin-bottom: 1.25rem;
-    color: white;
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
 }
 
 .date-indicator span {
     font-size: 0.875rem;
-    font-weight: 600;
-    opacity: 0.9;
+    font-weight: 500;
+    color: var(--text-muted);
 }
 
 #date-value {
     margin-left: 0.5rem;
-    font-weight: 700;
-    opacity: 1;
+    font-weight: 600;
+    color: var(--text-secondary);
 }
 
 /* Prompt Card */
 .prompt-card {
-    background: var(--bg-card);
+    background: var(--color-brand-accent);
     padding: 2rem 1.5rem;
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     text-align: center;
     margin-bottom: 1.25rem;
-    border: 2px solid var(--border-color);
+    border: none;
 }
 
 .prompt-text {
     font-size: 1.4rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: white;
     line-height: 1.5;
 }
 
