@@ -3,37 +3,37 @@
 {% block title %}Today - The Kitchen Table{% endblock %}
 
 {% block content %}
-<div class="table-container">
-    <header class="table-header">
+<header class="app-header">
+    <div class="app-header-top">
+        <h1 class="app-title">Kitchen Table</h1>
+        <div class="app-header-actions">
+            <a href="/table/settings" class="header-btn">Settings</a>
+            <button id="logout-btn" class="header-btn">Logout</button>
+        </div>
+    </div>
+    <div class="table-subtitle">
+        <span class="table-subtitle-text">🏠</span>
         <div id="table-switcher-container"></div>
-        <div class="header-actions">
-            <a href="/table/settings" class="header-link">Settings</a>
-            <button id="logout-btn" class="header-link">Logout</button>
-        </div>
-    </header>
+    </div>
+</header>
+
+<div class="content-wrapper">
+    <div class="date-indicator">
+        <span id="date-label">TODAY</span>
+        <span id="date-value"></span>
+    </div>
     
-    <main class="table-main">
-
-        <nav class="table-nav">
-            <a href="/table/yesterday" class="nav-link">← Yesterday</a>
-        </nav>
-
-        <div class="prompt-section">
-            <div class="date-indicator">
-                <span id="date-label">TODAY</span>
-                <span id="date-value"></span>
-            </div>
-            
-            <div id="prompt-card" class="prompt-card">
-                <p id="prompt-text" class="prompt-text">Loading...</p>
-            </div>
-            
-            <div id="response-section">
-                <!-- Response form or responses will be inserted here -->
-            </div>
-        </div>
-        
-    </main>
+    <div id="prompt-card" class="prompt-card">
+        <p id="prompt-text" class="prompt-text">Loading...</p>
+    </div>
+    
+    <div id="response-section">
+        <!-- Response form or responses will be inserted here -->
+    </div>
+    
+    <nav class="table-nav">
+        <a href="/table/yesterday" class="nav-link">← Yesterday</a>
+    </nav>
 </div>
 
 <div id="loading-overlay" class="loading-overlay" style="display: none;">

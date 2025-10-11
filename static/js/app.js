@@ -71,6 +71,11 @@ function formatDate(dateString) {
     return date.toLocaleDateString('en-US', options);
 }
 
+function getUserPillClass(userId) {
+    const colors = ['pill-lavender', 'pill-mint', 'pill-peach', 'pill-sky', 'pill-rose', 'pill-lemon', 'pill-sage', 'pill-lilac'];
+    return colors[userId % colors.length];
+}
+
 // Auth Forms
 if (typeof mode !== 'undefined') {
     const form = document.getElementById('auth-form');
@@ -228,15 +233,6 @@ if (logoutBtn) {
 if (window.location.pathname === '/table') {
     let pollInterval;
     
-    async function loadTableInfo() {
-        try {
-            const data = await API.call('/api/table/info');
-            document.getElementById('table-name').textContent = `🏠 ${data.table.name}`;
-        } catch (error) {
-            console.error('Error loading table info:', error);
-        }
-    }
-    
     async function loadTodayPrompt() {
         try {
             const data = await API.call('/api/prompt/today');
@@ -344,17 +340,23 @@ if (window.location.pathname === '/table') {
             return;
         }
         
-        const responsesHTML = responses.map(r => `
-            <div class="response-card" data-response-id="${r.id}">
-                <div class="response-header">
-                    <span class="response-author ${r.user_id === currentUserId ? 'you' : ''}">
-                        ${r.user_id === currentUserId ? 'You' : r.display_name}
-                    </span>
-                    <span class="response-time">${formatTimeAgo(r.created_at)}</span>
+        const responsesHTML = responses.map(r => {
+            const isCurrentUser = r.user_id === currentUserId;
+            const pillClass = getUserPillClass(r.user_id);
+            
+            return `
+                <div class="response-card" data-response-id="${r.id}">
+                    <div class="response-header">
+                        ${isCurrentUser 
+                            ? `<span class="response-author you">You</span>`
+                            : `<span class="response-author pill ${pillClass}">${escapeHtml(r.display_name)}</span>`
+                        }
+                        <span class="response-time">${formatTimeAgo(r.created_at)}</span>
+                    </div>
+                    <p class="response-text">${escapeHtml(r.response_text)}</p>
                 </div>
-                <p class="response-text">${escapeHtml(r.response_text)}</p>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         
         responseSection.innerHTML = `
             <div class="responses-container">
@@ -389,21 +391,11 @@ if (window.location.pathname === '/table') {
     }
     
     // Initialize
-    loadTableInfo();
     loadTodayPrompt();
 }
 
 // Yesterday Page
 if (window.location.pathname === '/table/yesterday') {
-    async function loadTableInfo() {
-        try {
-            const data = await API.call('/api/table/info');
-            document.getElementById('table-name').textContent = `🏠 ${data.table.name}`;
-        } catch (error) {
-            console.error('Error loading table info:', error);
-        }
-    }
-    
     async function loadYesterdayPrompt() {
         try {
             const data = await API.call('/api/prompt/yesterday');
@@ -428,17 +420,23 @@ if (window.location.pathname === '/table/yesterday') {
                 return;
             }
             
-            const responsesHTML = data.responses.map(r => `
-                <div class="response-card">
-                    <div class="response-header">
-                        <span class="response-author ${data.user_response && r.user_id === data.user_response.user_id ? 'you' : ''}">
-                            ${data.user_response && r.user_id === data.user_response.user_id ? 'You' : r.display_name}
-                        </span>
-                        <span class="response-time">${formatTimeAgo(r.created_at)}</span>
+            const responsesHTML = data.responses.map(r => {
+                const isCurrentUser = data.user_response && r.user_id === data.user_response.user_id;
+                const pillClass = getUserPillClass(r.user_id);
+                
+                return `
+                    <div class="response-card">
+                        <div class="response-header">
+                            ${isCurrentUser 
+                                ? `<span class="response-author you">You</span>`
+                                : `<span class="response-author pill ${pillClass}">${escapeHtml(r.display_name)}</span>`
+                            }
+                            <span class="response-time">${formatTimeAgo(r.created_at)}</span>
+                        </div>
+                        <p class="response-text">${escapeHtml(r.response_text)}</p>
                     </div>
-                    <p class="response-text">${escapeHtml(r.response_text)}</p>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             
             container.innerHTML = responsesHTML;
         } catch (error) {
@@ -459,7 +457,6 @@ if (window.location.pathname === '/table/yesterday') {
     }
     
     // Initialize
-    loadTableInfo();
     loadYesterdayPrompt();
 }
 
@@ -614,8 +611,7 @@ class TableSwitcher {
         
         container.innerHTML = `
             <div class="table-switcher" id="table-switcher">
-                <button class="table-switcher-button" id="table-switcher-btn">
-                    <span class="table-icon">🏠</span>
+                <button class="table-switcher-trigger" id="table-switcher-btn">
                     <span class="table-current-name">${escapeHtml(currentTableName)}</span>
                     <span class="arrow">▼</span>
                 </button>
@@ -733,6 +729,12 @@ class TableSwitcher {
             alert('Error switching tables: ' + error.message);
         }
     }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Initialize table switcher on relevant pages

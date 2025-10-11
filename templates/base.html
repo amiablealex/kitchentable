@@ -8,7 +8,9 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    {% block content %}{% endblock %}
+    <div class="app-container">
+        {% block content %}{% endblock %}
+    </div>
     <script src="/static/js/app.js"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
