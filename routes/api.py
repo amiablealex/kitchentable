@@ -1,5 +1,5 @@
 import logging
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, session
 from models.table import Table
 from models.prompt import Prompt
 from utils.auth import login_required
@@ -9,18 +9,34 @@ from datetime import date, timedelta
 logger = logging.getLogger(__name__)
 api_bp = Blueprint('api', __name__)
 
+def get_current_table_id(user):
+    """Get the current active table for the user"""
+    table_id = session.get('current_table_id')
+    
+    if table_id and Table.is_member(table_id, user['id']):
+        return table_id
+    
+    # Get user's first table
+    tables = Table.get_user_tables(user['id'])
+    if tables:
+        table_id = tables[0]['id']
+        session['current_table_id'] = table_id
+        return table_id
+    
+    return None
+
 @api_bp.route('/api/prompt/today', methods=['GET'])
 @login_required
 def get_today_prompt(user):
     """Get today's prompt and responses"""
     try:
-        table = Table.get_user_table(user['id'])
-        if not table:
+        table_id = get_current_table_id(user)
+        if not table_id:
             return jsonify({'error': 'Not in a table'}), 404
         
         # Ensure today's prompt exists
         today = date.today()
-        prompt = ensure_prompt_exists(table['id'], today)
+        prompt = ensure_prompt_exists(table_id, today)
         
         if not prompt:
             return jsonify({'error': 'Could not load prompt'}), 500
@@ -46,12 +62,12 @@ def get_today_prompt(user):
 def get_yesterday_prompt(user):
     """Get yesterday's prompt and all responses"""
     try:
-        table = Table.get_user_table(user['id'])
-        if not table:
+        table_id = get_current_table_id(user)
+        if not table_id:
             return jsonify({'error': 'Not in a table'}), 404
         
         yesterday = date.today() - timedelta(days=1)
-        prompt = get_prompt_for_date(table['id'], yesterday)
+        prompt = get_prompt_for_date(table_id, yesterday)
         
         if not prompt:
             return jsonify({'error': 'No prompt for yesterday'}), 404
@@ -81,8 +97,8 @@ def get_yesterday_prompt(user):
 def submit_response(user):
     """Submit response to today's prompt"""
     try:
-        table = Table.get_user_table(user['id'])
-        if not table:
+        table_id = get_current_table_id(user)
+        if not table_id:
             return jsonify({'error': 'Not in a table'}), 404
         
         data = request.get_json()
@@ -93,7 +109,7 @@ def submit_response(user):
         
         # Get today's prompt
         today = date.today()
-        prompt = ensure_prompt_exists(table['id'], today)
+        prompt = ensure_prompt_exists(table_id, today)
         
         if not prompt:
             return jsonify({'error': 'Could not load prompt'}), 500
@@ -123,13 +139,13 @@ def submit_response(user):
 def poll_responses(user):
     """Poll for new responses (for live updates)"""
     try:
-        table = Table.get_user_table(user['id'])
-        if not table:
+        table_id = get_current_table_id(user)
+        if not table_id:
             return jsonify({'error': 'Not in a table'}), 404
         
         # Get today's prompt
         today = date.today()
-        prompt = get_prompt_for_date(table['id'], today)
+        prompt = get_prompt_for_date(table_id, today)
         
         if not prompt:
             return jsonify({'new_responses': []})
@@ -153,4 +169,3 @@ def poll_responses(user):
     except Exception as e:
         logger.error(f"Poll responses error: {str(e)}")
         return jsonify({'error': 'An error occurred'}), 500
-        

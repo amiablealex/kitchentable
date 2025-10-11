@@ -575,3 +575,171 @@ if (window.location.pathname === '/table/settings') {
     // Initialize
     loadSettings();
 }
+
+// Table Switcher functionality
+class TableSwitcher {
+    constructor() {
+        this.currentTable = null;
+        this.tables = [];
+        this.isOpen = false;
+        this.init();
+    }
+    
+    async init() {
+        // Only initialize on pages that need it
+        const switcherContainer = document.getElementById('table-switcher-container');
+        if (!switcherContainer) return;
+        
+        await this.loadTables();
+        this.render();
+        this.attachEventListeners();
+    }
+    
+    async loadTables() {
+        try {
+            const data = await API.call('/api/table/list');
+            this.tables = data.tables;
+            this.currentTable = data.current_table_id;
+        } catch (error) {
+            console.error('Error loading tables:', error);
+        }
+    }
+    
+    render() {
+        const container = document.getElementById('table-switcher-container');
+        if (!container) return;
+        
+        const currentTableData = this.tables.find(t => t.is_current);
+        const currentTableName = currentTableData ? currentTableData.name : 'Select Table';
+        
+        container.innerHTML = `
+            <div class="table-switcher" id="table-switcher">
+                <button class="table-switcher-button" id="table-switcher-btn">
+                    <span class="table-icon">🏠</span>
+                    <span class="table-current-name">${escapeHtml(currentTableName)}</span>
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="table-switcher-dropdown">
+                    <div class="table-switcher-header">Your Tables</div>
+                    <div class="table-list" id="table-list">
+                        ${this.renderTableList()}
+                    </div>
+                    <div class="table-switcher-divider"></div>
+                    <button class="table-switcher-action" id="create-new-table-btn">
+                        <span class="icon">+</span>
+                        <span>Create New Table</span>
+                    </button>
+                    <button class="table-switcher-action" id="join-table-btn">
+                        <span class="icon">🔗</span>
+                        <span>Join Table</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    renderTableList() {
+        return this.tables.map(table => `
+            <button class="table-list-item ${table.is_current ? 'active' : ''}" 
+                    data-table-id="${table.id}">
+                <div class="table-info">
+                    <div class="table-name">${escapeHtml(table.name)}</div>
+                    <div class="table-role">${table.role === 'owner' ? 'Owner' : 'Member'}</div>
+                </div>
+                ${table.is_current ? '<span class="check-icon">✓</span>' : ''}
+            </button>
+        `).join('');
+    }
+    
+    attachEventListeners() {
+        const switcherBtn = document.getElementById('table-switcher-btn');
+        const switcher = document.getElementById('table-switcher');
+        
+        if (switcherBtn) {
+            switcherBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggle();
+            });
+        }
+        
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (switcher && !switcher.contains(e.target)) {
+                this.close();
+            }
+        });
+        
+        // Table selection
+        const tableItems = document.querySelectorAll('.table-list-item');
+        tableItems.forEach(item => {
+            item.addEventListener('click', async (e) => {
+                const tableId = parseInt(item.dataset.tableId);
+                if (tableId !== this.currentTable) {
+                    await this.switchTable(tableId);
+                }
+                this.close();
+            });
+        });
+        
+        // Create new table
+        const createBtn = document.getElementById('create-new-table-btn');
+        if (createBtn) {
+            createBtn.addEventListener('click', () => {
+                window.location.href = '/create-table';
+            });
+        }
+        
+        // Join table
+        const joinBtn = document.getElementById('join-table-btn');
+        if (joinBtn) {
+            joinBtn.addEventListener('click', () => {
+                window.location.href = '/join-table';
+            });
+        }
+    }
+    
+    toggle() {
+        const switcher = document.getElementById('table-switcher');
+        if (switcher) {
+            this.isOpen = !this.isOpen;
+            if (this.isOpen) {
+                switcher.classList.add('open');
+            } else {
+                switcher.classList.remove('open');
+            }
+        }
+    }
+    
+    close() {
+        const switcher = document.getElementById('table-switcher');
+        if (switcher) {
+            this.isOpen = false;
+            switcher.classList.remove('open');
+        }
+    }
+    
+    async switchTable(tableId) {
+        try {
+            showLoading();
+            await API.call('/api/table/switch', {
+                method: 'POST',
+                body: JSON.stringify({ table_id: tableId })
+            });
+            
+            // Reload the page to show new table content
+            window.location.reload();
+        } catch (error) {
+            hideLoading();
+            alert('Error switching tables: ' + error.message);
+        }
+    }
+}
+
+// Initialize table switcher on relevant pages
+if (window.location.pathname === '/table' || 
+    window.location.pathname === '/table/yesterday' || 
+    window.location.pathname === '/table/settings') {
+    document.addEventListener('DOMContentLoaded', () => {
+        new TableSwitcher();
+    });
+}

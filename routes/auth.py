@@ -1,4 +1,5 @@
 import logging
+import os
 from flask import Blueprint, request, jsonify, make_response, render_template
 from models.user import User
 from utils.auth import (
@@ -8,6 +9,21 @@ from utils.auth import (
 
 logger = logging.getLogger(__name__)
 auth_bp = Blueprint('auth', __name__)
+
+# Check if we're in development mode
+IS_DEVELOPMENT = os.environ.get('FLASK_ENV') == 'development' or os.environ.get('FLASK_DEBUG') == '1'
+
+def set_auth_cookie(response, token):
+    """Set authentication cookie with appropriate security settings"""
+    response.set_cookie(
+        'auth_token',
+        token,
+        httponly=True,
+        secure=not IS_DEVELOPMENT,  # Only use secure in production
+        samesite='Lax',
+        max_age=30*24*60*60  # 30 days
+    )
+    return response
 
 @auth_bp.route('/signup', methods=['GET'])
 def signup_page():
@@ -82,14 +98,7 @@ def signup():
             'message': 'Account created successfully',
             'redirect': '/create-table'
         }))
-        response.set_cookie(
-            'auth_token',
-            token,
-            httponly=True,
-            secure=True,
-            samesite='Lax',
-            max_age=30*24*60*60  # 30 days
-        )
+        response = set_auth_cookie(response, token)
         
         logger.info(f"New user signed up: {username}")
         return response
@@ -123,14 +132,7 @@ def login():
             'message': 'Login successful',
             'redirect': '/table'
         }))
-        response.set_cookie(
-            'auth_token',
-            token,
-            httponly=True,
-            secure=True,
-            samesite='Lax',
-            max_age=30*24*60*60  # 30 days
-        )
+        response = set_auth_cookie(response, token)
         
         logger.info(f"User logged in: {user['username']}")
         return response

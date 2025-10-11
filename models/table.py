@@ -65,7 +65,13 @@ class Table:
 
     @staticmethod
     def get_user_table(user_id):
-        """Get the table a user belongs to"""
+        """Get the first table a user belongs to (for backwards compatibility)"""
+        tables = Table.get_user_tables(user_id)
+        return tables[0] if tables else None
+
+    @staticmethod
+    def get_user_tables(user_id):
+        """Get all tables a user belongs to"""
         try:
             with get_db_context() as conn:
                 cursor = conn.execute('''
@@ -73,28 +79,28 @@ class Table:
                     FROM tables t
                     JOIN table_members tm ON t.id = tm.table_id
                     WHERE tm.user_id = ?
+                    ORDER BY tm.joined_at DESC
                 ''', (user_id,))
                 
-                table = cursor.fetchone()
-                return dict_from_row(table) if table else None
+                tables = cursor.fetchall()
+                return [dict_from_row(t) for t in tables]
         except Exception as e:
-            logger.error(f"Error getting user table: {str(e)}")
-            return None
+            logger.error(f"Error getting user tables: {str(e)}")
+            return []
 
     @staticmethod
     def add_member(table_id, user_id):
         """Add a member to a table"""
         try:
             with get_db_context() as conn:
-                # Check if user is already in a table
+                # Check if user is already in THIS table
                 cursor = conn.execute(
-                    'SELECT table_id FROM table_members WHERE user_id = ?',
-                    (user_id,)
+                    'SELECT id FROM table_members WHERE table_id = ? AND user_id = ?',
+                    (table_id, user_id)
                 )
-                existing = cursor.fetchone()
-                if existing:
-                    logger.warning(f"User {user_id} already in table {existing['table_id']}")
-                    return False, "You're already in a kitchen table"
+                if cursor.fetchone():
+                    logger.warning(f"User {user_id} already in table {table_id}")
+                    return False, "You're already in this kitchen table"
                 
                 # Check member count
                 cursor = conn.execute(

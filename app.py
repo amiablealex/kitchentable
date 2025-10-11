@@ -1,7 +1,7 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask, render_template
+from flask import Flask, render_template, session
 from flask_cors import CORS
 from config import Config
 from utils.db import init_db
@@ -13,6 +13,7 @@ from routes.api import api_bp
 # Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
+app.secret_key = Config.SECRET_KEY  # Required for sessions
 CORS(app, supports_credentials=True)
 
 # Setup logging
