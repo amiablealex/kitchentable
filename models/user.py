@@ -165,3 +165,28 @@ class User:
         except Exception as e:
             logger.error(f"Error updating display name: {str(e)}")
             return False
+
+    @staticmethod
+    def delete_account(user_id, password):
+        """Permanently delete a user account and all associated data"""
+        try:
+            # First verify the password
+            user = User.get_by_id(user_id)
+            if not user or not verify_password(password, user['password_hash']):
+                return False, "Incorrect password"
+            
+            with get_db_context() as conn:
+                # Delete user's responses
+                conn.execute('DELETE FROM responses WHERE user_id = ?', (user_id,))
+                
+                # Remove from tables
+                conn.execute('DELETE FROM table_members WHERE user_id = ?', (user_id,))
+                
+                # Delete user
+                conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+                
+                logger.info(f"Deleted user account: {user_id}")
+                return True, "Account deleted successfully"
+        except Exception as e:
+            logger.error(f"Error deleting account: {str(e)}")
+            return False, "Error deleting account"

@@ -1,5 +1,5 @@
 import logging
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, jsonify, request, session, make_response
 from models.table import Table
 from models.prompt import Prompt
 from utils.auth import login_required
@@ -192,3 +192,33 @@ def update_profile(user):
         logger.error(f"Update profile error: {str(e)}")
         return jsonify({'error': 'An error occurred'}), 500
 
+@api_bp.route('/api/user/delete', methods=['POST'])
+@login_required
+def delete_account(user):
+    """Delete user account permanently"""
+    try:
+        data = request.get_json()
+        password = data.get('password', '')
+        
+        if not password:
+            return jsonify({'error': 'Password required'}), 400
+        
+        from models.user import User
+        success, message = User.delete_account(user['id'], password)
+        
+        if not success:
+            return jsonify({'error': message}), 401
+        
+        # Clear session/cookie
+        response = make_response(jsonify({
+            'message': message,
+            'redirect': '/'
+        }))
+        response.set_cookie('auth_token', '', expires=0)
+        
+        logger.info(f"User {user['username']} deleted their account")
+        return response
+    
+    except Exception as e:
+        logger.error(f"Delete account error: {str(e)}")
+        return jsonify({'error': 'An error occurred'}), 500

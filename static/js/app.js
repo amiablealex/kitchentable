@@ -498,6 +498,59 @@ if (window.location.pathname === '/table/settings') {
             console.error('Error loading settings:', error);
         }
     }
+
+    // Delete account modal
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+    const deleteModal = document.getElementById('delete-modal');
+    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+    const deleteConfirmForm = document.getElementById('delete-confirm-form');
+    
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', () => {
+            deleteModal.style.display = 'flex';
+            document.getElementById('delete-password').value = '';
+            const deleteError = document.getElementById('delete-error');
+            if (deleteError) deleteError.classList.remove('show');
+        });
+    }
+    
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener('click', () => {
+            deleteModal.style.display = 'none';
+        });
+    }
+    
+    if (deleteConfirmForm) {
+        deleteConfirmForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('delete-password').value;
+            
+            if (!password) {
+                showError('delete-error', 'Please enter your password');
+                return;
+            }
+            
+            try {
+                const submitBtn = deleteConfirmForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Deleting...';
+                
+                const response = await API.call('/api/user/delete', {
+                    method: 'POST',
+                    body: JSON.stringify({ password })
+                });
+                
+                if (response.redirect) {
+                    window.location.href = response.redirect;
+                }
+            } catch (error) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Yes, Delete My Account';
+                showError('delete-error', error.message);
+            }
+        });
+    }
     
     // Profile form
     const profileForm = document.getElementById('profile-form');
