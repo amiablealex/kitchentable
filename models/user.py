@@ -150,3 +150,18 @@ class User:
         except Exception as e:
             logger.error(f"Error resetting password: {str(e)}")
             return False
+
+    @staticmethod
+    def update_display_name(user_id, display_name):
+        """Update user's display name"""
+        try:
+            with get_db_context() as conn:
+                conn.execute(
+                    'UPDATE users SET display_name = ? WHERE id = ?',
+                    (display_name, user_id)
+                )
+                logger.info(f"Updated display name for user {user_id}")
+                return True
+        except Exception as e:
+            logger.error(f"Error updating display name: {str(e)}")
+            return False

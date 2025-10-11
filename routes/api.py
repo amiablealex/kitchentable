@@ -169,3 +169,26 @@ def poll_responses(user):
     except Exception as e:
         logger.error(f"Poll responses error: {str(e)}")
         return jsonify({'error': 'An error occurred'}), 500
+
+@api_bp.route('/api/user/profile', methods=['PUT'])
+@login_required
+def update_profile(user):
+    """Update user profile"""
+    try:
+        data = request.get_json()
+        display_name = data.get('display_name', '').strip()
+        
+        if not display_name or len(display_name) > 50:
+            return jsonify({'error': 'Display name must be 1-50 characters'}), 400
+        
+        from models.user import User
+        if User.update_display_name(user['id'], display_name):
+            logger.info(f"User {user['username']} updated display name to {display_name}")
+            return jsonify({'message': 'Profile updated successfully'})
+        else:
+            return jsonify({'error': 'Failed to update profile'}), 500
+    
+    except Exception as e:
+        logger.error(f"Update profile error: {str(e)}")
+        return jsonify({'error': 'An error occurred'}), 500
+

@@ -225,7 +225,11 @@ def get_table_info(user):
                 'prompt_time': table['prompt_time'],
                 'is_owner': is_owner
             },
-            'members': members
+            'members': members,
+            'user': {
+                'username': user['username'],
+                'display_name': user['display_name']
+            }
         })
     
     except Exception as e:

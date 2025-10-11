@@ -466,6 +466,10 @@ if (window.location.pathname === '/table/settings') {
         try {
             const data = await API.call('/api/table/info');
             
+            // Update profile info
+            document.getElementById('display_name').value = data.user.display_name || data.user.username;
+            document.getElementById('username-display').textContent = data.user.username;
+            
             // Update table info
             document.getElementById('table-name-display').textContent = data.table.name;
             document.getElementById('invite-code-display').textContent = data.table.invite_code;
@@ -493,6 +497,41 @@ if (window.location.pathname === '/table/settings') {
         } catch (error) {
             console.error('Error loading settings:', error);
         }
+    }
+    
+    // Profile form
+    const profileForm = document.getElementById('profile-form');
+    if (profileForm) {
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(profileForm);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const submitBtn = profileForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving...';
+                
+                await API.call('/api/user/profile', {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        display_name: data.display_name
+                    })
+                });
+                
+                showSuccess('profile-message', 'Profile updated successfully!');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Save Profile';
+                
+                // Reload settings to show updated info
+                await loadSettings();
+            } catch (error) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Save Profile';
+                showError('profile-error', error.message);
+            }
+        });
     }
     
     // Copy invite code
@@ -540,7 +579,7 @@ if (window.location.pathname === '/table/settings') {
             } catch (error) {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Save Changes';
-                showError('settings-message', error.message);
+                showError('settings-error', error.message);
             }
         });
     }

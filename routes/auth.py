@@ -59,12 +59,14 @@ def signup():
         username = data.get('username', '').strip()
         email = data.get('email', '').strip()
         password = data.get('password', '')
-        display_name = data.get('display_name', '').strip()
+
+        # Set display_name to username by default
+        display_name = username
         
         # Validate inputs
-        if not all([username, email, password, display_name]):
+        if not all([username, email, password]):
             return jsonify({'error': 'All fields are required'}), 400
-        
+
         if not validate_username(username):
             return jsonify({
                 'error': 'Username must be 3-20 characters and contain only letters, numbers, and underscores'
@@ -76,9 +78,6 @@ def signup():
         valid, msg = validate_password(password)
         if not valid:
             return jsonify({'error': msg}), 400
-        
-        if len(display_name) < 1 or len(display_name) > 50:
-            return jsonify({'error': 'Display name must be 1-50 characters'}), 400
         
         # Check if username or email exists
         if User.get_by_username(username):
