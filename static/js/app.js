@@ -97,6 +97,15 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function formatPromptTime(time24) {
+    // Convert 24-hour time (e.g., "17:00") to 12-hour format (e.g., "5:00 PM")
+    const [hours, minutes] = time24.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+}
+
 // Auth Forms
 if (typeof mode !== 'undefined') {
     const form = document.getElementById('auth-form');
@@ -589,7 +598,7 @@ if (window.location.pathname === '/table/history') {
     loadHistoryPrompt();
 }
 
-// Settings Page - PART 3
+// Settings Page
 if (window.location.pathname === '/table/settings') {
     async function loadSettings() {
         try {
@@ -599,9 +608,13 @@ if (window.location.pathname === '/table/settings') {
             document.getElementById('display_name').value = data.user.display_name || data.user.username;
             document.getElementById('username-display').textContent = data.user.username;
             
-            // Update table info
+            // Update table info (visible to all members)
             document.getElementById('table-name-display').textContent = data.table.name;
             document.getElementById('invite-code-display').textContent = data.table.invite_code;
+            
+            // Format and display prompt time for all members
+            const promptTimeFormatted = formatPromptTime(data.table.prompt_time);
+            document.getElementById('prompt-time-display').textContent = promptTimeFormatted;
             
             // Show owner settings if user is owner
             if (data.table.is_owner) {
@@ -769,7 +782,7 @@ if (window.location.pathname === '/table/settings') {
         });
     }
     
-    // Settings form
+    // Settings form (owner only)
     const settingsForm = document.getElementById('settings-form');
     if (settingsForm) {
         settingsForm.addEventListener('submit', async (e) => {

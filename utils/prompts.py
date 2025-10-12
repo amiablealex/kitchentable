@@ -27,7 +27,7 @@ def get_current_prompt_date(table_id):
         return date.today()
 
 def get_time_until_next_prompt(table_id):
-    """Get seconds until next prompt is available"""
+    """Get seconds until TODAY'S prompt is available (returns 0 if already available)"""
     try:
         with get_db_context() as conn:
             cursor = conn.execute('SELECT prompt_time FROM tables WHERE id = ?', (table_id,))
@@ -45,10 +45,8 @@ def get_time_until_next_prompt(table_id):
                 seconds = (today_prompt - now).total_seconds()
                 return max(0, int(seconds))
             else:
-                # Next prompt is tomorrow at prompt_time
-                tomorrow_prompt = datetime.combine(date.today() + timedelta(days=1), prompt_time)
-                seconds = (tomorrow_prompt - now).total_seconds()
-                return max(0, int(seconds))
+                # Today's prompt is already available, return 0
+                return 0
     except Exception as e:
         logger.error(f"Error getting time until next prompt: {str(e)}")
         return 0
