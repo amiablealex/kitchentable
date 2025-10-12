@@ -31,10 +31,14 @@
         <!-- Responses will be inserted here -->
     </div>
     
-    <nav class="table-nav" style="display: flex; gap: 1rem; justify-content: center; align-items: center;">
-        <a href="#" id="prev-day-link" class="nav-link" style="display: none;">← Previous</a>
-        <a href="/table" class="nav-link">Today →</a>
-        <a href="#" id="next-day-link" class="nav-link" style="display: none;">Next →</a>
+    <nav class="table-nav history-nav">
+        <div class="history-nav-row">
+            <a href="#" id="prev-day-link" class="nav-link history-prev" style="display: none;">← Previous</a>
+            <a href="#" id="next-day-link" class="nav-link history-next" style="display: none;">Next →</a>
+        </div>
+        <div class="history-nav-today">
+            <a href="/table" class="nav-link history-today">Today →</a>
+        </div>
     </nav>
 </div>
 

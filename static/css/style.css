@@ -592,10 +592,10 @@ body {
 /* Pastel Pills for Usernames */
 .pill {
     display: inline-block;
-    padding: 0.2rem 0.6rem;
-    border-radius: 24px;
-    font-size: 0.65rem;
-    font-weight: 500;
+    padding: 0.16rem 0.4rem;
+    border-radius: 20px;
+    font-size: 0.2rem;
+    font-weight: 250;
     color: var(--text-primary);
     border: 2px solid transparent;
 }
@@ -1394,5 +1394,98 @@ body {
     
     .modal-content {
         padding: 1.5rem;
+    }
+}
+
+/* Replace the history navigation styles in your static/css/style.css */
+/* Find and replace the previous history navigation CSS with this: */
+
+/* History navigation - two-row layout */
+.history-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--border-color);
+}
+
+.history-nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.history-nav-today {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.history-prev {
+    margin-right: auto;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.history-next {
+    margin-left: auto;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.history-today {
+    font-weight: 700 !important;
+}
+
+/* If only one navigation button is shown, don't stretch it */
+.history-nav-row:has(.history-prev:not([style*="display: none"])):has(.history-next[style*="display: none"]) {
+    justify-content: flex-start;
+}
+
+.history-nav-row:has(.history-prev[style*="display: none"]):has(.history-next:not([style*="display: none"])) {
+    justify-content: flex-end;
+}
+
+/* Mobile responsive - keep on one line with smaller text */
+@media (max-width: 768px) {
+    .history-nav-row .nav-link {
+        font-size: 0.85rem;
+        padding: 0.6rem 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+@media (max-width: 480px) {
+    .history-nav-row {
+        gap: 0.5rem;
+    }
+    
+    .history-nav-row .nav-link {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        flex: 1;
+    }
+    
+    .history-prev {
+        text-align: left;
+    }
+    
+    .history-next {
+        text-align: right;
+    }
+}
+
+@media (max-width: 380px) {
+    .history-nav-row .nav-link {
+        font-size: 0.7rem;
+        padding: 0.5rem 0.5rem;
     }
 }

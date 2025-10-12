@@ -260,15 +260,24 @@ if (window.location.pathname === '/table') {
             const data = await API.call('/api/prompt/today');
             currentPromptData = data;
             
-            // Update date
-            document.getElementById('date-label').textContent = 'TODAY';
+            // Determine if we're before or after today's prompt time
+            const isBeforePromptTime = data.seconds_until_next_prompt > 0 && data.seconds_until_next_prompt < 86400;
+            
+            // Update date label - show YESTERDAY if we're before prompt time
+            document.getElementById('date-label').textContent = isBeforePromptTime ? 'YESTERDAY' : 'TODAY';
             document.getElementById('date-value').textContent = formatDate(data.date);
             
             // Show countdown if before prompt time
-            if (data.seconds_until_next_prompt > 0 && data.seconds_until_next_prompt < 86400) {
+            if (isBeforePromptTime) {
                 const timeUntil = document.getElementById('time-until-prompt');
                 timeUntil.textContent = formatTimeUntilPrompt(data.seconds_until_next_prompt);
                 timeUntil.style.display = 'block';
+            } else {
+                // Hide countdown after prompt time
+                const timeUntil = document.getElementById('time-until-prompt');
+                if (timeUntil) {
+                    timeUntil.style.display = 'none';
+                }
             }
             
             // Update prompt
