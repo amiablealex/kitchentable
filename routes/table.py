@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, jsonify, session
 from models.table import Table
 from models.prompt import Prompt
 from utils.auth import login_required
-from utils.prompts import ensure_prompt_exists
+from utils.prompts import ensure_prompt_exists, get_current_prompt_date
 from datetime import date, timedelta
 
 logger = logging.getLogger(__name__)
@@ -54,16 +54,40 @@ def table_page(user):
     
     return render_template('table.html')
 
-@table_bp.route('/table/yesterday', methods=['GET'])
+@table_bp.route('/table/history', methods=['GET'])
 @login_required
-def yesterday_page(user):
-    """Yesterday's prompt page"""
+def history_page(user):
+    """Prompt history page (replaces yesterday page)"""
     # Check if user has any tables
     table_id = get_current_table_id(user)
     if not table_id:
         return render_template('redirect.html', url='/create-table')
     
-    return render_template('yesterday.html')
+    # Get date parameter (defaults to yesterday)
+    date_str = request.args.get('date')
+    if date_str:
+        try:
+            from datetime import datetime
+            prompt_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            prompt_date = get_current_prompt_date(table_id) - timedelta(days=1)
+    else:
+        prompt_date = get_current_prompt_date(table_id) - timedelta(days=1)
+    
+    return render_template('history.html', date=prompt_date.isoformat())
+
+@table_bp.route('/table/yesterday', methods=['GET'])
+@login_required
+def yesterday_page(user):
+    """Yesterday's prompt page (redirect to history)"""
+    # Redirect to history page for backwards compatibility
+    table_id = get_current_table_id(user)
+    if not table_id:
+        return render_template('redirect.html', url='/create-table')
+    
+    current_date = get_current_prompt_date(table_id)
+    yesterday = current_date - timedelta(days=1)
+    return render_template('redirect.html', url=f'/table/history?date={yesterday.isoformat()}')
 
 @table_bp.route('/table/settings', methods=['GET'])
 @login_required
@@ -83,7 +107,7 @@ def create_table(user):
     try:
         data = request.get_json()
         name = data.get('name', '').strip()
-        prompt_time = data.get('prompt_time', '00:00')
+        prompt_time = data.get('prompt_time', '17:00')
         
         if not name:
             return jsonify({'error': 'Table name required'}), 400
@@ -98,7 +122,8 @@ def create_table(user):
         session['current_table_id'] = table_id
         
         # Create first prompt
-        ensure_prompt_exists(table_id, date.today())
+        current_date = get_current_prompt_date(table_id)
+        ensure_prompt_exists(table_id, current_date)
         
         logger.info(f"User {user['username']} created table {name}")
         
@@ -217,6 +242,9 @@ def get_table_info(user):
         members = Table.get_members(table_id)
         is_owner = Table.is_owner(table_id, user['id'])
         
+        # Get user's display name for this table
+        display_name = Table.get_member_display_name(table_id, user['id'])
+        
         return jsonify({
             'table': {
                 'id': table['id'],
@@ -228,7 +256,7 @@ def get_table_info(user):
             'members': members,
             'user': {
                 'username': user['username'],
-                'display_name': user['display_name']
+                'display_name': display_name
             }
         })
     

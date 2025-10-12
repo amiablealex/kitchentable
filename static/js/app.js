@@ -71,9 +71,30 @@ function formatDate(dateString) {
     return date.toLocaleDateString('en-US', options);
 }
 
+function formatTimeUntilPrompt(seconds) {
+    if (seconds <= 0) return '';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+        return `Today's prompt available in ${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+        return `Today's prompt available in ${minutes}m`;
+    } else {
+        return `Today's prompt available in less than 1 minute`;
+    }
+}
+
 function getUserPillClass(userId) {
     const colors = ['pill-lavender', 'pill-mint', 'pill-peach', 'pill-sky', 'pill-rose', 'pill-lemon', 'pill-sage', 'pill-lilac'];
     return colors[userId % colors.length];
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Auth Forms
@@ -229,33 +250,47 @@ if (logoutBtn) {
     });
 }
 
-// Table Page (Today)
+// Table Page (Today) - PART 2
 if (window.location.pathname === '/table') {
     let pollInterval;
+    let currentPromptData = null;
     
     async function loadTodayPrompt() {
         try {
             const data = await API.call('/api/prompt/today');
+            currentPromptData = data;
             
             // Update date
             document.getElementById('date-label').textContent = 'TODAY';
             document.getElementById('date-value').textContent = formatDate(data.date);
             
+            // Show countdown if before prompt time
+            if (data.seconds_until_next_prompt > 0 && data.seconds_until_next_prompt < 86400) {
+                const timeUntil = document.getElementById('time-until-prompt');
+                timeUntil.textContent = formatTimeUntilPrompt(data.seconds_until_next_prompt);
+                timeUntil.style.display = 'block';
+            }
+            
             // Update prompt
             document.getElementById('prompt-text').textContent = data.prompt.prompt_text;
+            
+            // Update history link
+            const historyDate = new Date(data.date);
+            historyDate.setDate(historyDate.getDate() - 1);
+            const historyLink = document.getElementById('history-link');
+            historyLink.href = `/table/history?date=${historyDate.toISOString().split('T')[0]}`;
+            historyLink.textContent = `← ${formatDate(historyDate.toISOString().split('T')[0])}`;
             
             // Update response section
             const responseSection = document.getElementById('response-section');
             
             if (data.user_response) {
                 // User has responded - show all responses
-                renderResponses(data.prompt.responses, data.user_response.user_id);
-                
-                // Start polling for new responses
+                renderResponses(data.prompt.responses, data.user_response.user_id, data.prompt.is_editable);
                 startPolling();
             } else {
-                // Show response form
-                renderResponseForm();
+                // Show response form with count
+                renderResponseForm(data.prompt.response_count);
             }
         } catch (error) {
             console.error('Error loading prompt:', error);
@@ -263,9 +298,16 @@ if (window.location.pathname === '/table') {
         }
     }
     
-    function renderResponseForm() {
+    function renderResponseForm(responseCount) {
         const responseSection = document.getElementById('response-section');
-        responseSection.innerHTML = `
+        
+        let countHTML = '';
+        if (responseCount > 0) {
+            const plural = responseCount === 1 ? 'person has' : 'people have';
+            countHTML = `<div style="text-align: center; margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.95rem;">${responseCount} ${plural} answered today</div>`;
+        }
+        
+        responseSection.innerHTML = countHTML + `
             <div class="response-form">
                 <textarea 
                     id="response-textarea" 
@@ -317,7 +359,6 @@ if (window.location.pathname === '/table') {
                     body: JSON.stringify({ response })
                 });
                 
-                // Reload to show responses
                 await loadTodayPrompt();
             } catch (error) {
                 submitBtn.disabled = false;
@@ -327,7 +368,7 @@ if (window.location.pathname === '/table') {
         });
     }
     
-    function renderResponses(responses, currentUserId) {
+    function renderResponses(responses, currentUserId, isEditable) {
         const responseSection = document.getElementById('response-section');
         
         if (!responses || responses.length === 0) {
@@ -343,17 +384,23 @@ if (window.location.pathname === '/table') {
         const responsesHTML = responses.map(r => {
             const isCurrentUser = r.user_id === currentUserId;
             const pillClass = getUserPillClass(r.user_id);
+            const editedLabel = r.edited_at ? ' <span style="font-size: 0.75rem; opacity: 0.7;">(edited)</span>' : '';
+            const editButton = isCurrentUser && isEditable ? 
+                `<button class="edit-response-btn" data-response-id="${r.id}" data-prompt-id="${currentPromptData.prompt.id}" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.85rem; padding: 0.25rem 0.5rem;">✏️ Edit</button>` : '';
             
             return `
                 <div class="response-card" data-response-id="${r.id}">
                     <div class="response-header">
-                        ${isCurrentUser 
-                            ? `<span class="response-author you">You</span>`
-                            : `<span class="response-author pill ${pillClass}">${escapeHtml(r.display_name)}</span>`
-                        }
-                        <span class="response-time">${formatTimeAgo(r.created_at)}</span>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            ${isCurrentUser 
+                                ? `<span class="response-author you">You</span>`
+                                : `<span class="response-author pill ${pillClass}">${escapeHtml(r.display_name)}</span>`
+                            }
+                            ${editButton}
+                        </div>
+                        <span class="response-time">${formatTimeAgo(r.created_at)}${editedLabel}</span>
                     </div>
-                    <p class="response-text">${escapeHtml(r.response_text)}</p>
+                    <p class="response-text" data-original-text="${escapeHtml(r.response_text)}">${escapeHtml(r.response_text)}</p>
                 </div>
             `;
         }).join('');
@@ -363,12 +410,60 @@ if (window.location.pathname === '/table') {
                 ${responsesHTML}
             </div>
         `;
-    }
-    
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        
+        // Add edit functionality
+        document.querySelectorAll('.edit-response-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const responseCard = e.target.closest('.response-card');
+                const responseText = responseCard.querySelector('.response-text');
+                const originalText = responseText.dataset.originalText;
+                const promptId = e.target.dataset.promptId;
+                
+                // Replace text with textarea
+                responseText.innerHTML = `
+                    <textarea class="response-textarea" style="width: 100%; min-height: 80px;">${originalText}</textarea>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="btn btn-primary btn-small save-edit-btn">Save</button>
+                        <button class="btn btn-secondary btn-small cancel-edit-btn">Cancel</button>
+                    </div>
+                `;
+                
+                const saveBtn = responseText.querySelector('.save-edit-btn');
+                const cancelBtn = responseText.querySelector('.cancel-edit-btn');
+                const textarea = responseText.querySelector('textarea');
+                
+                cancelBtn.addEventListener('click', () => {
+                    responseText.innerHTML = escapeHtml(originalText);
+                });
+                
+                saveBtn.addEventListener('click', async () => {
+                    const newText = textarea.value.trim();
+                    if (!newText) {
+                        alert('Response cannot be empty');
+                        return;
+                    }
+                    
+                    try {
+                        saveBtn.disabled = true;
+                        saveBtn.textContent = 'Saving...';
+                        
+                        await API.call('/api/response/edit', {
+                            method: 'PUT',
+                            body: JSON.stringify({
+                                prompt_id: promptId,
+                                response: newText
+                            })
+                        });
+                        
+                        await loadTodayPrompt();
+                    } catch (error) {
+                        alert(error.message);
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = 'Save';
+                    }
+                });
+            });
+        });
     }
     
     async function pollForNewResponses() {
@@ -377,7 +472,6 @@ if (window.location.pathname === '/table') {
             const currentResponses = document.querySelectorAll('.response-card');
             
             if (data.responses && data.responses.length > currentResponses.length) {
-                // New responses available - reload
                 await loadTodayPrompt();
             }
         } catch (error) {
@@ -387,25 +481,57 @@ if (window.location.pathname === '/table') {
     
     function startPolling() {
         if (pollInterval) clearInterval(pollInterval);
-        pollInterval = setInterval(pollForNewResponses, 30000); // Poll every 30 seconds
+        pollInterval = setInterval(pollForNewResponses, 30000);
     }
     
-    // Initialize
     loadTodayPrompt();
 }
 
-// Yesterday Page
-if (window.location.pathname === '/table/yesterday') {
-    async function loadYesterdayPrompt() {
+// History Page
+if (window.location.pathname === '/table/history') {
+    async function loadHistoryPrompt() {
         try {
-            const data = await API.call('/api/prompt/yesterday');
+            const urlParams = new URLSearchParams(window.location.search);
+            const dateParam = urlParams.get('date') || currentDate;
+            
+            const data = await API.call(`/api/prompt/date/${dateParam}`);
             
             // Update date
-            document.getElementById('date-label').textContent = 'YESTERDAY';
-            document.getElementById('date-value').textContent = formatDate(data.date);
+            document.getElementById('date-label').textContent = formatDate(data.date).split(',')[0].toUpperCase();
+            document.getElementById('date-value').textContent = formatDate(data.date).split(',').slice(1).join(',');
             
             // Update prompt
             document.getElementById('prompt-text').textContent = data.prompt.prompt_text;
+            
+            // Navigation buttons
+            const currentDate = new Date(data.date);
+            const prevDate = new Date(currentDate);
+            prevDate.setDate(prevDate.getDate() - 1);
+            const nextDate = new Date(currentDate);
+            nextDate.setDate(nextDate.getDate() + 1);
+            const today = new Date();
+            
+            const prevLink = document.getElementById('prev-day-link');
+            const nextLink = document.getElementById('next-day-link');
+            
+            // Show prev if within 7 days
+            const daysBack = Math.floor((today - currentDate) / (1000 * 60 * 60 * 24));
+            if (daysBack < 7) {
+                prevLink.href = `/table/history?date=${prevDate.toISOString().split('T')[0]}`;
+                prevLink.textContent = `← ${formatDate(prevDate.toISOString().split('T')[0])}`;
+                prevLink.style.display = 'inline-block';
+            } else {
+                prevLink.style.display = 'none';
+            }
+            
+            // Show next if not today
+            if (daysBack > 0) {
+                nextLink.href = `/table/history?date=${nextDate.toISOString().split('T')[0]}`;
+                nextLink.textContent = `${formatDate(nextDate.toISOString().split('T')[0])} →`;
+                nextLink.style.display = 'inline-block';
+            } else {
+                nextLink.style.display = 'none';
+            }
             
             // Render responses
             const container = document.getElementById('responses-container');
@@ -414,7 +540,7 @@ if (window.location.pathname === '/table/yesterday') {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">🤷</div>
-                        <p>No one answered yesterday's question</p>
+                        <p>No one answered this question</p>
                     </div>
                 `;
                 return;
@@ -423,6 +549,7 @@ if (window.location.pathname === '/table/yesterday') {
             const responsesHTML = data.responses.map(r => {
                 const isCurrentUser = data.user_response && r.user_id === data.user_response.user_id;
                 const pillClass = getUserPillClass(r.user_id);
+                const editedLabel = r.edited_at ? ' <span style="font-size: 0.75rem; opacity: 0.7;">(edited)</span>' : '';
                 
                 return `
                     <div class="response-card">
@@ -431,7 +558,7 @@ if (window.location.pathname === '/table/yesterday') {
                                 ? `<span class="response-author you">You</span>`
                                 : `<span class="response-author pill ${pillClass}">${escapeHtml(r.display_name)}</span>`
                             }
-                            <span class="response-time">${formatTimeAgo(r.created_at)}</span>
+                            <span class="response-time">${formatTimeAgo(r.created_at)}${editedLabel}</span>
                         </div>
                         <p class="response-text">${escapeHtml(r.response_text)}</p>
                     </div>
@@ -440,27 +567,20 @@ if (window.location.pathname === '/table/yesterday') {
             
             container.innerHTML = responsesHTML;
         } catch (error) {
-            console.error('Error loading yesterday prompt:', error);
+            console.error('Error loading history prompt:', error);
             const container = document.getElementById('responses-container');
             container.innerHTML = `
                 <div class="empty-state">
-                    <p>No prompt available for yesterday</p>
+                    <p>No prompt available for this date</p>
                 </div>
             `;
         }
     }
     
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    // Initialize
-    loadYesterdayPrompt();
+    loadHistoryPrompt();
 }
 
-// Settings Page
+// Settings Page - PART 3
 if (window.location.pathname === '/table/settings') {
     async function loadSettings() {
         try {
@@ -497,6 +617,43 @@ if (window.location.pathname === '/table/settings') {
         } catch (error) {
             console.error('Error loading settings:', error);
         }
+    }
+
+    // Leave table modal
+    const leaveTableBtn = document.getElementById('leave-table-btn');
+    const leaveModal = document.getElementById('leave-modal');
+    const cancelLeaveBtn = document.getElementById('cancel-leave-btn');
+    const confirmLeaveBtn = document.getElementById('confirm-leave-btn');
+    
+    if (leaveTableBtn) {
+        leaveTableBtn.addEventListener('click', () => {
+            leaveModal.style.display = 'flex';
+        });
+    }
+    
+    if (cancelLeaveBtn) {
+        cancelLeaveBtn.addEventListener('click', () => {
+            leaveModal.style.display = 'none';
+        });
+    }
+    
+    if (confirmLeaveBtn) {
+        confirmLeaveBtn.addEventListener('click', async () => {
+            try {
+                showLoading();
+                const response = await API.call('/api/table/leave', {
+                    method: 'POST'
+                });
+                
+                if (response.redirect) {
+                    window.location.href = response.redirect;
+                }
+            } catch (error) {
+                hideLoading();
+                leaveModal.style.display = 'none';
+                alert(error.message);
+            }
+        });
     }
 
     // Delete account modal
@@ -545,6 +702,7 @@ if (window.location.pathname === '/table/settings') {
                     window.location.href = response.redirect;
                 }
             } catch (error) {
+                const submitBtn = deleteConfirmForm.querySelector('button[type="submit"]');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Yes, Delete My Account';
                 showError('delete-error', error.message);
@@ -573,15 +731,16 @@ if (window.location.pathname === '/table/settings') {
                     })
                 });
                 
-                showSuccess('profile-message', 'Profile updated successfully!');
+                showSuccess('profile-message', 'Display name updated successfully!');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Save Profile';
+                submitBtn.textContent = 'Save Display Name';
                 
                 // Reload settings to show updated info
                 await loadSettings();
             } catch (error) {
+                const submitBtn = profileForm.querySelector('button[type="submit"]');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Save Profile';
+                submitBtn.textContent = 'Save Display Name';
                 showError('profile-error', error.message);
             }
         });
@@ -630,33 +789,10 @@ if (window.location.pathname === '/table/settings') {
                 // Reload settings
                 await loadSettings();
             } catch (error) {
+                const submitBtn = settingsForm.querySelector('button[type="submit"]');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Save Changes';
                 showError('settings-error', error.message);
-            }
-        });
-    }
-    
-    // Leave table
-    const leaveTableBtn = document.getElementById('leave-table-btn');
-    if (leaveTableBtn) {
-        leaveTableBtn.addEventListener('click', async () => {
-            if (!confirm('Are you sure you want to leave this table? You will need an invite code to rejoin.')) {
-                return;
-            }
-            
-            try {
-                showLoading();
-                const response = await API.call('/api/table/leave', {
-                    method: 'POST'
-                });
-                
-                if (response.redirect) {
-                    window.location.href = response.redirect;
-                }
-            } catch (error) {
-                hideLoading();
-                alert(error.message);
             }
         });
     }
@@ -823,14 +959,9 @@ class TableSwitcher {
     }
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
 // Initialize table switcher on relevant pages
 if (window.location.pathname === '/table' || 
+    window.location.pathname === '/table/history' ||
     window.location.pathname === '/table/yesterday' || 
     window.location.pathname === '/table/settings') {
     document.addEventListener('DOMContentLoaded', () => {

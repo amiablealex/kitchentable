@@ -3,8 +3,8 @@ from flask import Blueprint, jsonify, request, session, make_response
 from models.table import Table
 from models.prompt import Prompt
 from utils.auth import login_required
-from utils.prompts import ensure_prompt_exists, get_prompt_for_date
-from datetime import date, timedelta
+from utils.prompts import ensure_prompt_exists, get_prompt_for_date, get_current_prompt_date, get_time_until_next_prompt
+from datetime import date, timedelta, datetime
 
 logger = logging.getLogger(__name__)
 api_bp = Blueprint('api', __name__)
@@ -34,27 +34,85 @@ def get_today_prompt(user):
         if not table_id:
             return jsonify({'error': 'Not in a table'}), 404
         
-        # Ensure today's prompt exists
-        today = date.today()
-        prompt = ensure_prompt_exists(table_id, today)
+        # Get current prompt date (respects prompt time)
+        current_date = get_current_prompt_date(table_id)
+        prompt = ensure_prompt_exists(table_id, current_date)
         
         if not prompt:
             return jsonify({'error': 'Could not load prompt'}), 500
         
         # Get prompt with responses
-        prompt_data = Prompt.get_prompt_with_responses(prompt['id'], user['id'])
+        prompt_data = Prompt.get_prompt_with_responses(prompt['id'], user['id'], table_id)
         
         # Get user's response if exists
         user_response = Prompt.get_user_response(prompt['id'], user['id'])
         
+        # Get time until next prompt
+        seconds_until_next = get_time_until_next_prompt(table_id)
+        
         return jsonify({
             'prompt': prompt_data,
             'user_response': user_response,
-            'date': today.isoformat()
+            'date': current_date.isoformat(),
+            'seconds_until_next_prompt': seconds_until_next
         })
     
     except Exception as e:
         logger.error(f"Get today prompt error: {str(e)}")
+        return jsonify({'error': 'An error occurred'}), 500
+
+@api_bp.route('/api/prompt/date/<date_str>', methods=['GET'])
+@login_required
+def get_prompt_by_date(user, date_str):
+    """Get prompt for a specific date"""
+    try:
+        table_id = get_current_table_id(user)
+        if not table_id:
+            return jsonify({'error': 'Not in a table'}), 404
+        
+        # Parse date
+        try:
+            prompt_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format'}), 400
+        
+        # Don't allow dates more than 7 days back
+        current_date = get_current_prompt_date(table_id)
+        days_back = (current_date - prompt_date).days
+        
+        if days_back > 7:
+            return jsonify({'error': 'Can only view prompts from the last 7 days'}), 400
+        
+        if days_back < 0:
+            return jsonify({'error': 'Cannot view future prompts'}), 400
+        
+        prompt = get_prompt_for_date(table_id, prompt_date)
+        
+        if not prompt:
+            return jsonify({'error': 'No prompt for that date'}), 404
+        
+        # Get all responses (regardless of whether user responded)
+        responses = Prompt.get_responses(prompt['id'], table_id)
+        user_response = Prompt.get_user_response(prompt['id'], user['id'])
+        
+        # Check if prompt is still editable
+        is_editable = Prompt.is_prompt_active(prompt['prompt_date'], table_id)
+        
+        return jsonify({
+            'prompt': {
+                'id': prompt['id'],
+                'prompt_text': prompt['prompt_text'],
+                'prompt_date': prompt['prompt_date'],
+                'is_custom': prompt['is_custom'],
+                'is_editable': is_editable
+            },
+            'responses': responses,
+            'user_response': user_response,
+            'date': prompt_date.isoformat()
+        })
+    
+    except Exception as e:
+        logger.error(f"Get prompt by date error: {str(e)}")
         return jsonify({'error': 'An error occurred'}), 500
 
 @api_bp.route('/api/prompt/yesterday', methods=['GET'])
@@ -66,14 +124,16 @@ def get_yesterday_prompt(user):
         if not table_id:
             return jsonify({'error': 'Not in a table'}), 404
         
-        yesterday = date.today() - timedelta(days=1)
+        # Get current date and go back one day
+        current_date = get_current_prompt_date(table_id)
+        yesterday = current_date - timedelta(days=1)
         prompt = get_prompt_for_date(table_id, yesterday)
         
         if not prompt:
             return jsonify({'error': 'No prompt for yesterday'}), 404
         
         # Get all responses (regardless of whether user responded)
-        responses = Prompt.get_responses(prompt['id'])
+        responses = Prompt.get_responses(prompt['id'], table_id)
         user_response = Prompt.get_user_response(prompt['id'], user['id'])
         
         return jsonify({
@@ -108,8 +168,8 @@ def submit_response(user):
             return jsonify({'error': 'Response cannot be empty'}), 400
         
         # Get today's prompt
-        today = date.today()
-        prompt = ensure_prompt_exists(table_id, today)
+        current_date = get_current_prompt_date(table_id)
+        prompt = ensure_prompt_exists(table_id, current_date)
         
         if not prompt:
             return jsonify({'error': 'Could not load prompt'}), 500
@@ -123,7 +183,7 @@ def submit_response(user):
         logger.info(f"User {user['username']} submitted response to prompt {prompt['id']}")
         
         # Return updated prompt data with all responses
-        prompt_data = Prompt.get_prompt_with_responses(prompt['id'], user['id'])
+        prompt_data = Prompt.get_prompt_with_responses(prompt['id'], user['id'], table_id)
         
         return jsonify({
             'message': message,
@@ -132,6 +192,42 @@ def submit_response(user):
     
     except Exception as e:
         logger.error(f"Submit response error: {str(e)}")
+        return jsonify({'error': 'An error occurred'}), 500
+
+@api_bp.route('/api/response/edit', methods=['PUT'])
+@login_required
+def edit_response(user):
+    """Edit an existing response"""
+    try:
+        table_id = get_current_table_id(user)
+        if not table_id:
+            return jsonify({'error': 'Not in a table'}), 404
+        
+        data = request.get_json()
+        prompt_id = data.get('prompt_id')
+        response_text = data.get('response', '').strip()
+        
+        if not prompt_id or not response_text:
+            return jsonify({'error': 'Prompt ID and response text required'}), 400
+        
+        # Edit response
+        success, message = Prompt.edit_response(prompt_id, user['id'], response_text, table_id)
+        
+        if not success:
+            return jsonify({'error': message}), 400
+        
+        logger.info(f"User {user['username']} edited response to prompt {prompt_id}")
+        
+        # Return updated prompt data
+        prompt_data = Prompt.get_prompt_with_responses(prompt_id, user['id'], table_id)
+        
+        return jsonify({
+            'message': message,
+            'prompt': prompt_data
+        })
+    
+    except Exception as e:
+        logger.error(f"Edit response error: {str(e)}")
         return jsonify({'error': 'An error occurred'}), 500
 
 @api_bp.route('/api/response/poll', methods=['GET'])
@@ -144,23 +240,27 @@ def poll_responses(user):
             return jsonify({'error': 'Not in a table'}), 404
         
         # Get today's prompt
-        today = date.today()
-        prompt = get_prompt_for_date(table_id, today)
+        current_date = get_current_prompt_date(table_id)
+        prompt = get_prompt_for_date(table_id, current_date)
         
         if not prompt:
             return jsonify({'new_responses': []})
         
         # Check if user has responded
         if not Prompt.user_has_responded(prompt['id'], user['id']):
-            return jsonify({'new_responses': []})
+            # Return response count even if user hasn't responded
+            from utils.db import get_db_context
+            with get_db_context() as conn:
+                cursor = conn.execute(
+                    'SELECT COUNT(*) as count FROM responses WHERE prompt_id = ?',
+                    (prompt['id'],)
+                )
+                count = cursor.fetchone()['count']
+                return jsonify({'response_count': count, 'responses': []})
         
         # Get all responses
-        responses = Prompt.get_responses(prompt['id'])
+        responses = Prompt.get_responses(prompt['id'], table_id)
         
-        # Get timestamp from query param (last known response time)
-        last_check = request.args.get('last_check', '')
-        
-        # Return all responses (client will filter new ones)
         return jsonify({
             'responses': responses,
             'count': len(responses)
@@ -173,20 +273,23 @@ def poll_responses(user):
 @api_bp.route('/api/user/profile', methods=['PUT'])
 @login_required
 def update_profile(user):
-    """Update user profile"""
+    """Update user profile (table-specific display name)"""
     try:
+        table_id = get_current_table_id(user)
+        if not table_id:
+            return jsonify({'error': 'Not in a table'}), 404
+        
         data = request.get_json()
         display_name = data.get('display_name', '').strip()
         
         if not display_name or len(display_name) > 50:
             return jsonify({'error': 'Display name must be 1-50 characters'}), 400
         
-        from models.user import User
-        if User.update_display_name(user['id'], display_name):
-            logger.info(f"User {user['username']} updated display name to {display_name}")
-            return jsonify({'message': 'Profile updated successfully'})
+        if Table.update_member_display_name(table_id, user['id'], display_name):
+            logger.info(f"User {user['username']} updated display name to {display_name} for table {table_id}")
+            return jsonify({'message': 'Display name updated successfully'})
         else:
-            return jsonify({'error': 'Failed to update profile'}), 500
+            return jsonify({'error': 'Failed to update display name'}), 500
     
     except Exception as e:
         logger.error(f"Update profile error: {str(e)}")

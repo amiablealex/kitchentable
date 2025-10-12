@@ -1219,3 +1219,180 @@ body {
         padding: 1.5rem;
     }
 }
+
+/* Add these styles to the END of your existing static/css/style.css file */
+
+/* Edit Response Button */
+.edit-response-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+    transition: color 0.2s;
+    font-family: 'Handlee', cursive;
+}
+
+.edit-response-btn:hover {
+    color: var(--color-brand-primary);
+}
+
+/* Response editing state */
+.response-text textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-family: 'Handlee', cursive;
+    resize: vertical;
+    background: var(--bg-secondary);
+    transition: all 0.2s;
+}
+
+.response-text textarea:focus {
+    outline: none;
+    border-color: var(--color-brand-primary);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.1);
+}
+
+/* Time until prompt indicator */
+#time-until-prompt {
+    text-align: center;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    background: var(--bg-highlight);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Response count before answering */
+.response-count-indicator {
+    text-align: center;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+/* Subtle reminder text */
+.subtle-reminder {
+    text-align: center;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Back button on create/join pages */
+.auth-back-link {
+    display: inline-block;
+    color: var(--color-brand-primary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    transition: all 0.2s;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'Handlee', cursive;
+    padding: 0;
+}
+
+.auth-back-link:hover {
+    color: var(--text-primary);
+    transform: translateX(-3px);
+}
+
+/* History navigation improvements */
+.table-nav {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.table-nav .nav-link {
+    color: var(--color-brand-primary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.75rem 1.5rem;
+    display: inline-block;
+    border-radius: 25px;
+    transition: all 0.2s;
+}
+
+.table-nav .nav-link:hover {
+    background: var(--bg-primary);
+    transform: translateY(-2px);
+}
+
+/* Edited label styling */
+.response-time .edited-label {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-left: 0.25rem;
+}
+
+/* Improved modal styling */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    padding: 2rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    max-width: 500px;
+    width: 100%;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive improvements for navigation */
+@media (max-width: 480px) {
+    .table-nav {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .table-nav .nav-link {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .modal-content {
+        padding: 1.5rem;
+    }
+}

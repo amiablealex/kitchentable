@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Today - The Kitchen Table{% endblock %}
+{% block title %}History - The Kitchen Table{% endblock %}
 
 {% block content %}
 <header class="app-header">
@@ -19,30 +19,30 @@
 
 <div class="content-wrapper">
     <div class="date-indicator">
-        <span id="date-label">TODAY</span>
+        <span id="date-label">HISTORY</span>
         <span id="date-value"></span>
     </div>
-    
-    <div id="time-until-prompt" style="display: none; text-align: center; padding: 0.5rem; margin-bottom: 1rem; background: var(--bg-highlight); border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--text-secondary);"></div>
     
     <div id="prompt-card" class="prompt-card">
         <p id="prompt-text" class="prompt-text">Loading...</p>
     </div>
     
-    <div style="text-align: center; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-secondary); font-style: italic;">
-        Take your time – you can come back and answer later today
+    <div id="responses-container" class="responses-container">
+        <!-- Responses will be inserted here -->
     </div>
     
-    <div id="response-section">
-        <!-- Response form or responses will be inserted here -->
-    </div>
-    
-    <nav class="table-nav">
-        <a href="#" id="history-link" class="nav-link">← Yesterday</a>
+    <nav class="table-nav" style="display: flex; gap: 1rem; justify-content: center; align-items: center;">
+        <a href="#" id="prev-day-link" class="nav-link" style="display: none;">← Previous</a>
+        <a href="/table" class="nav-link">Today →</a>
+        <a href="#" id="next-day-link" class="nav-link" style="display: none;">Next →</a>
     </nav>
 </div>
 
 <div id="loading-overlay" class="loading-overlay" style="display: none;">
     <div class="loading-spinner"></div>
 </div>
+
+<script>
+const currentDate = '{{ date }}';
+</script>
 {% endblock %}

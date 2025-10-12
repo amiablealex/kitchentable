@@ -1,8 +1,57 @@
 import logging
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from utils.db import get_db_context
 
 logger = logging.getLogger(__name__)
+
+def get_current_prompt_date(table_id):
+    """Get the current active prompt date for a table based on prompt time"""
+    try:
+        with get_db_context() as conn:
+            cursor = conn.execute('SELECT prompt_time FROM tables WHERE id = ?', (table_id,))
+            table = cursor.fetchone()
+            
+            if not table:
+                return date.today()
+            
+            prompt_time = datetime.strptime(table['prompt_time'], '%H:%M').time()
+            now = datetime.now()
+            
+            # If we haven't reached the prompt time yet today, we're still on yesterday's prompt
+            if now.time() < prompt_time:
+                return date.today() - timedelta(days=1)
+            else:
+                return date.today()
+    except Exception as e:
+        logger.error(f"Error getting current prompt date: {str(e)}")
+        return date.today()
+
+def get_time_until_next_prompt(table_id):
+    """Get seconds until next prompt is available"""
+    try:
+        with get_db_context() as conn:
+            cursor = conn.execute('SELECT prompt_time FROM tables WHERE id = ?', (table_id,))
+            table = cursor.fetchone()
+            
+            if not table:
+                return 0
+            
+            prompt_time = datetime.strptime(table['prompt_time'], '%H:%M').time()
+            now = datetime.now()
+            
+            # If we haven't reached today's prompt time, calculate time until then
+            if now.time() < prompt_time:
+                today_prompt = datetime.combine(date.today(), prompt_time)
+                seconds = (today_prompt - now).total_seconds()
+                return max(0, int(seconds))
+            else:
+                # Next prompt is tomorrow at prompt_time
+                tomorrow_prompt = datetime.combine(date.today() + timedelta(days=1), prompt_time)
+                seconds = (tomorrow_prompt - now).total_seconds()
+                return max(0, int(seconds))
+    except Exception as e:
+        logger.error(f"Error getting time until next prompt: {str(e)}")
+        return 0
 
 def get_next_default_prompt(table_id):
     """Get the next default prompt for a table"""
@@ -48,7 +97,7 @@ def get_next_default_prompt(table_id):
 def create_daily_prompt(table_id, prompt_date=None):
     """Create a daily prompt for a table"""
     if prompt_date is None:
-        prompt_date = date.today()
+        prompt_date = get_current_prompt_date(table_id)
     
     try:
         with get_db_context() as conn:
@@ -86,7 +135,9 @@ def create_prompts_for_all_tables():
             
             success_count = 0
             for table in tables:
-                if create_daily_prompt(table['id']):
+                # Use get_current_prompt_date to respect table's prompt time
+                prompt_date = get_current_prompt_date(table['id'])
+                if create_daily_prompt(table['id'], prompt_date):
                     success_count += 1
             
             logger.info(f"Created prompts for {success_count}/{len(tables)} tables")
@@ -113,7 +164,8 @@ def get_prompt_for_date(table_id, prompt_date):
                 'id': prompt['id'],
                 'prompt_text': prompt['prompt_text'],
                 'prompt_date': prompt['prompt_date'],
-                'is_custom': bool(prompt['is_custom'])
+                'is_custom': bool(prompt['is_custom']),
+                'table_id': prompt['table_id']
             }
     except Exception as e:
         logger.error(f"Error getting prompt for date: {str(e)}")

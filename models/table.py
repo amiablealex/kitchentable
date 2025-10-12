@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class Table:
     @staticmethod
-    def create(name, created_by, prompt_time='00:00'):
+    def create(name, created_by, prompt_time='17:00'):
         """Create a new table"""
         try:
             invite_code = generate_invite_code()
@@ -24,11 +24,16 @@ class Table:
                 
                 table_id = cursor.lastrowid
                 
+                # Get user's display name
+                user_cursor = conn.execute('SELECT display_name FROM users WHERE id = ?', (created_by,))
+                user = user_cursor.fetchone()
+                display_name = user['display_name'] if user else 'User'
+                
                 # Add creator as owner
                 conn.execute('''
-                    INSERT INTO table_members (table_id, user_id, role)
-                    VALUES (?, ?, 'owner')
-                ''', (table_id, created_by))
+                    INSERT INTO table_members (table_id, user_id, role, display_name)
+                    VALUES (?, ?, 'owner', ?)
+                ''', (table_id, created_by, display_name))
                 
                 logger.info(f"Created table: {name} (ID: {table_id}, Code: {invite_code})")
                 return table_id, invite_code
@@ -113,11 +118,16 @@ class Table:
                     logger.warning(f"Table {table_id} is full")
                     return False, f"This table is full (max {Config.TABLE_MAX_MEMBERS} members)"
                 
+                # Get user's default display name
+                user_cursor = conn.execute('SELECT display_name FROM users WHERE id = ?', (user_id,))
+                user = user_cursor.fetchone()
+                display_name = user['display_name'] if user else 'User'
+                
                 # Add member
                 conn.execute('''
-                    INSERT INTO table_members (table_id, user_id, role)
-                    VALUES (?, ?, 'member')
-                ''', (table_id, user_id))
+                    INSERT INTO table_members (table_id, user_id, role, display_name)
+                    VALUES (?, ?, 'member', ?)
+                ''', (table_id, user_id, display_name))
                 
                 logger.info(f"Added user {user_id} to table {table_id}")
                 return True, "Successfully joined table"
@@ -131,7 +141,7 @@ class Table:
         try:
             with get_db_context() as conn:
                 cursor = conn.execute('''
-                    SELECT u.id, u.username, u.display_name, u.last_active,
+                    SELECT u.id, u.username, tm.display_name, u.last_active,
                            tm.role, tm.joined_at
                     FROM users u
                     JOIN table_members tm ON u.id = tm.user_id
@@ -144,6 +154,39 @@ class Table:
         except Exception as e:
             logger.error(f"Error getting table members: {str(e)}")
             return []
+
+    @staticmethod
+    def get_member_display_name(table_id, user_id):
+        """Get member's display name for a specific table"""
+        try:
+            with get_db_context() as conn:
+                cursor = conn.execute('''
+                    SELECT display_name FROM table_members 
+                    WHERE table_id = ? AND user_id = ?
+                ''', (table_id, user_id))
+                
+                result = cursor.fetchone()
+                return result['display_name'] if result else None
+        except Exception as e:
+            logger.error(f"Error getting member display name: {str(e)}")
+            return None
+
+    @staticmethod
+    def update_member_display_name(table_id, user_id, display_name):
+        """Update member's display name for a specific table"""
+        try:
+            with get_db_context() as conn:
+                conn.execute('''
+                    UPDATE table_members 
+                    SET display_name = ? 
+                    WHERE table_id = ? AND user_id = ?
+                ''', (display_name, table_id, user_id))
+                
+                logger.info(f"Updated display name for user {user_id} in table {table_id}")
+                return True
+        except Exception as e:
+            logger.error(f"Error updating member display name: {str(e)}")
+            return False
 
     @staticmethod
     def is_member(table_id, user_id):

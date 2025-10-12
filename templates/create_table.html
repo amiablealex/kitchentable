@@ -5,7 +5,7 @@
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
-        <a href="/table" class="auth-back-link">← Back to Table</a>
+        <button id="back-to-landing" class="auth-back-link">← Back to Home</button>
         <h1 class="auth-title">🏠</h1>
         <h2>Create Your Kitchen Table</h2>
         <p class="auth-description">Set up a cozy space for your group to connect daily.</p>
@@ -20,8 +20,8 @@
             
             <div class="form-group">
                 <label for="prompt_time">Daily Question Time</label>
-                <input type="time" id="prompt_time" name="prompt_time" value="00:00">
-                <small>When should the new question appear each day?</small>
+                <input type="time" id="prompt_time" name="prompt_time" value="17:00">
+                <small>We recommend 5:00 PM (17:00). You can change this later in settings.</small>
             </div>
             
             <div id="error-message" class="error-message"></div>
@@ -33,4 +33,15 @@
         <a href="/join-table" class="btn btn-secondary">Join Existing Table</a>
     </div>
 </div>
+
+<script>
+document.getElementById('back-to-landing').addEventListener('click', async () => {
+    try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/';
+    } catch (error) {
+        window.location.href = '/';
+    }
+});
+</script>
 {% endblock %}

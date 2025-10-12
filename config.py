@@ -15,6 +15,7 @@ class Config:
     TABLE_MIN_MEMBERS = 2
     TABLE_MAX_MEMBERS = 10
     RESPONSE_MAX_LENGTH = 500
+    DEFAULT_PROMPT_TIME = '17:00'  # 5 PM
     
     # Logging
     LOG_FILE = 'kitchen_table.log'
