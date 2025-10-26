@@ -16,6 +16,15 @@ class Config:
     TABLE_MAX_MEMBERS = 10
     RESPONSE_MAX_LENGTH = 500
     DEFAULT_PROMPT_TIME = '17:00'  # 5 PM
+    APP_URL = os.environ.get('APP_URL') or 'http://localhost:5000'
+    
+    # Email Configuration (for password resets)
+    SMTP_ENABLED = os.environ.get('SMTP_ENABLED', 'false').lower() == 'true'
+    SMTP_SERVER = os.environ.get('SMTP_SERVER') or 'smtp.gmail.com'
+    SMTP_PORT = int(os.environ.get('SMTP_PORT') or 587)
+    SMTP_USERNAME = os.environ.get('SMTP_USERNAME')  # Your Gmail address
+    SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')  # Gmail app password
+    SMTP_FROM_EMAIL = os.environ.get('SMTP_FROM_EMAIL') or SMTP_USERNAME
     
     # Logging
     LOG_FILE = 'kitchen_table.log'

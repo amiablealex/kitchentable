@@ -10,6 +10,10 @@ from routes.auth import auth_bp
 from routes.table import table_bp
 from routes.api import api_bp
 
+# Load environment
+from dotenv import load_dotenv
+load_dotenv()
+
 # Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(Config)

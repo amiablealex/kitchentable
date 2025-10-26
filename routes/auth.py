@@ -6,6 +6,8 @@ from utils.auth import (
     create_jwt_token, validate_email, validate_username, 
     validate_password, get_current_user
 )
+from utils.email import send_password_reset_email
+from config import Config
 
 logger = logging.getLogger(__name__)
 auth_bp = Blueprint('auth', __name__)
@@ -177,22 +179,32 @@ def forgot_password():
         user = User.get_by_email(email)
         
         # Always return success to prevent email enumeration
+        response_message = {
+            'message': 'If that email address is registered, you will receive password reset instructions shortly.'
+        }
+        
         if user:
             token = User.create_reset_token(email)
-            # In production, send email with reset link
-            # For now, just log it
-            logger.info(f"Password reset requested for {email}, token: {token}")
             
-            # Return token in response (only for development/demo)
-            # In production, this would be sent via email
-            return jsonify({
-                'message': 'Password reset instructions sent',
-                'reset_token': token  # Remove this in production
-            })
+            if Config.SMTP_ENABLED:
+                # Send actual email
+                email_sent = send_password_reset_email(email, token, Config.APP_URL)
+                
+                if not email_sent:
+                    logger.error(f"Failed to send password reset email to {email}")
+                    # Still return success to user to prevent enumeration
+            else:
+                # Development mode - log the reset link
+                reset_link = f"{Config.APP_URL}/reset-password/{token}"
+                logger.info(f"Password reset requested for {email}")
+                logger.info(f"Reset link (SMTP disabled): {reset_link}")
+                
+                # In development, optionally return the link in response
+                if IS_DEVELOPMENT:
+                    response_message['dev_reset_link'] = reset_link
+                    response_message['dev_note'] = 'SMTP is disabled. Use the link above (development only)'
         
-        return jsonify({
-            'message': 'If that email exists, password reset instructions have been sent'
-        })
+        return jsonify(response_message)
     
     except Exception as e:
         logger.error(f"Forgot password error: {str(e)}")
@@ -214,7 +226,8 @@ def reset_password():
             return jsonify({'error': msg}), 400
         
         if User.reset_password(token, new_password):
-            return jsonify({'message': 'Password reset successful'})
+            logger.info("Password reset successful")
+            return jsonify({'message': 'Password reset successful. You can now log in with your new password.'})
         else:
             return jsonify({'error': 'Invalid or expired reset token'}), 400
     
