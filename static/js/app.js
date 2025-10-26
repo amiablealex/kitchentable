@@ -161,11 +161,25 @@ if (typeof mode !== 'undefined') {
                             password: data.password
                         })
                     });
+                    
+                    // Show success message for password reset
+                    if (successEl) {
+                        successEl.textContent = response.message || 'Password reset successful! Redirecting to login...';
+                        successEl.classList.add('show');
+                    }
+                    form.reset();
+                    
+                    // Redirect to login after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                    return;
                 }
                 
                 if (response.redirect) {
                     window.location.href = response.redirect;
                 }
+
             } catch (error) {
                 if (errorEl) {
                     errorEl.textContent = error.message;

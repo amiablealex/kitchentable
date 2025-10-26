@@ -227,7 +227,10 @@ def reset_password():
         
         if User.reset_password(token, new_password):
             logger.info("Password reset successful")
-            return jsonify({'message': 'Password reset successful. You can now log in with your new password.'})
+            return jsonify({
+                'message': 'Password reset successful. You can now log in with your new password.',
+                'redirect': '/login'
+            })
         else:
             return jsonify({'error': 'Invalid or expired reset token'}), 400
     
